@@ -27,7 +27,7 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
       with:
-        workspaces: . -> target
+        workspaces: userspace/ksuinit
         cache-targets: false
 
     - name: Build ksuinit

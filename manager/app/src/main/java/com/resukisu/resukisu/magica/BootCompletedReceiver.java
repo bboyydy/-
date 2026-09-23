@@ -1,6 +1,8 @@
 package com.resukisu.resukisu.magica;
 
-import static com.resukisu.resukisu.magica.AppZygotePreload.TAG;`r`n`r`nimport com.resukisu.resukisu.BuildConfig;
+import static com.resukisu.resukisu.magica.AppZygotePreload.TAG;
+
+import com.resukisu.resukisu.BuildConfig;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
