@@ -1,6 +1,6 @@
 package com.resukisu.resukisu.magica;
 
-import static com.resukisu.resukisu.magica.AppZygotePreload.TAG;
+import static com.resukisu.resukisu.magica.AppZygotePreload.TAG;`r`n`r`nimport com.resukisu.resukisu.BuildConfig;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,7 +17,7 @@ public class BootCompletedReceiver extends BroadcastReceiver {
         var action = intent.getAction();
         if (!Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action)
                 && !Intent.ACTION_BOOT_COMPLETED.equals(action)
-                && !"com.resukisu.resukisu.magica.LAUNCH".equals(action)) {
+                && !(BuildConfig.APPLICATION_ID + ".magica.LAUNCH").equals(action)) {
             return;
         }
         try {

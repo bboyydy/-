@@ -148,7 +148,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.resukisu.resukisu.magica.LAUNCH" />
+                <action android:name="${applicationId}.magica.LAUNCH" />
             </intent-filter>
         </receiver>
     </application>
