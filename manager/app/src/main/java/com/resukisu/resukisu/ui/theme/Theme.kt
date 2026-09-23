@@ -139,7 +139,6 @@ class ThemeConfig(
     var isEnableBlur by mutableStateOf(false)
     var isEnableBlurExp by mutableStateOf(false)
     var isUseBackgroundSeedColor by mutableStateOf(false)
-    var bottomBarStyle by mutableStateOf(BottomBarStyle.MATERIAL3_EXPRESSIVE)
 
     // 主题变化检测
     private var lastDarkModeState: Boolean? = null
@@ -222,11 +221,6 @@ class BackgroundManager(
         settings.putBoolean("enable_blur_exp", enable)
     }
 
-    fun saveBottomBarStyle(style: BottomBarStyle) {
-        config.bottomBarStyle = style
-        settings.putInt("bottom_bar_style", style.ordinal)
-    }
-
     fun saveUseBackgroundSeedColor(enable: Boolean) {
         config.isUseBackgroundSeedColor = enable
         settings.putBoolean("use_background_seed_color", enable)
@@ -289,6 +283,7 @@ class BackgroundManager(
         }
 
         config.backgroundDim = prefs.getFloat("background_dim", 0f).coerceIn(0f, 1f)
+        config.isEnableBlur = prefs.getBoolean("enable_blur", false)
         config.isEnableBlurExp = prefs.getBoolean("enable_blur_exp", false)
         config.isUseBackgroundSeedColor = prefs.getBoolean("use_background_seed_color", false)
         config.isHighContrastMode = prefs.getBoolean("high_contrast_mode", false)
@@ -365,7 +360,6 @@ fun KernelSUTheme(
         themeRepository = themeRepository,
         backgroundManager = backgroundManager,
         cardConfig = cardConfig,
-        settings = settings,
     )
 
     // 创建颜色方案
@@ -415,10 +409,10 @@ private fun ThemeInitializer(
     themeRepository: ThemeRepository,
     backgroundManager: BackgroundManager,
     cardConfig: CardConfig,
-    settings: AppSettingsRepository,
 ) {
     val themeChanged = themeConfig.detectThemeChange(systemIsDark)
     val scope = rememberCoroutineScope()
+    val settings = koinInject<AppSettingsRepository>()
 
     // 处理系统主题变化
     LaunchedEffect(systemIsDark, themeChanged) {
@@ -448,9 +442,32 @@ private fun ThemeInitializer(
             themeConfig.dynamicPaletteStyle = themeRepository.loadDynamicPaletteStyle(
                 themeConfig.dynamicColorSpec,
             )
-            themeConfig.isEnableBlur = settings.getBoolean("enable_blur", false)
-            themeConfig.bottomBarStyle = BottomBarStyle.fromOrdinal(settings.getInt("bottom_bar_style", 0))
             cardConfig.load()
+
+            if (!settings.contains("custom_background")) {
+                settings.putString(
+                    "custom_background",
+                    "android.resource://${context.packageName}/${com.resukisu.resukisu.R.drawable.default_wallpaper}",
+                )
+                settings.putBoolean("custom_background_enabled", true)
+            }
+
+            // Apply the clear wallpaper treatment once for both fresh and existing installs.
+            // Later changes in theme settings remain under the user's control.
+            if (!settings.getBoolean("lazhazi_clear_v3", false)) {
+                settings.putFloat("background_dim", 0f)
+                settings.putFloat("card_alpha", 0f)
+                settings.putBoolean("enable_blur", false)
+                settings.putBoolean("enable_blur_exp", false)
+                settings.putBoolean("custom_background_enabled", true)
+                settings.putBoolean("is_custom_alpha_set", true)
+                settings.putBoolean("lazhazi_clear_v3", true)
+                themeConfig.backgroundDim = 0f
+                themeConfig.isEnableBlur = false
+                themeConfig.isEnableBlurExp = false
+                cardConfig.updateAlpha(0f)
+                cardConfig.updateBackground(true)
+            }
 
             if (!themeConfig.backgroundImageLoaded && !themeConfig.preventBackgroundRefresh) {
                 backgroundManager.loadCustomBackground()
@@ -627,13 +644,8 @@ fun Modifier.blurEffect(
     }
 
     return LocalBlurState.current?.let { backdrop ->
-        // 0.8f like haze, for material design without custom background enable
-        val blurTintAlpha = if (cardConfig.isCustomBackgroundEnabled)
-            cardConfig.cardAlpha
-        else 0.8f
-
         val blendColor =
-            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = blurTintAlpha)
+            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = cardConfig.cardAlpha)
 
         this.then(
             Modifier

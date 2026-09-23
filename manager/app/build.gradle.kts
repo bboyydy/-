@@ -19,8 +19,6 @@ val androidSourceCompatibility = rootProject.extra["androidSourceCompatibility"]
 val androidTargetCompatibility = rootProject.extra["androidTargetCompatibility"] as JavaVersion
 val managerVersionCode = rootProject.extra["managerVersionCode"] as Int
 val managerVersionName = rootProject.extra["managerVersionName"] as String
-val managerPackageName = rootProject.extra["managerPackageName"] as String
-val managerName = rootProject.extra["managerName"] as String
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -82,7 +80,6 @@ android {
     buildFeatures {
         aidl = true
         buildConfig = true
-        resValues = true
         compose = true
         prefab = true
     }
@@ -122,15 +119,14 @@ android {
     buildToolsVersion = androidBuildToolsVersion
 
     defaultConfig {
+        applicationId = "com.lazhazi.lazhazi"
         minSdk = androidMinSdkVersion
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
         versionName = managerVersionName
-        applicationId  = managerPackageName
 
-        val isPrBuild = rootProject.extra["isPrBuild"] as Boolean
+        val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
-        resValue("string", "app_name", managerName)
 
         externalNativeBuild {
             cmake {
@@ -140,17 +136,14 @@ android {
             }
         }
 
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a")
-        }
     }
 
     splits {
         abi {
             isEnable = isReleaseTask
             reset()
-            include("arm64-v8a", "x86_64", "armeabi-v7a")
-            isUniversalApk = true
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 
@@ -165,6 +158,19 @@ android {
     }
 }
 
+val verifyReleaseKsud = tasks.register("verifyReleaseKsud") {
+    val arm64Ksud = layout.projectDirectory.file("src/main/jniLibs/arm64-v8a/libksud.so").asFile
+    doLast {
+        check(arm64Ksud.isFile && arm64Ksud.length() > 1_000_000) {
+            "Missing arm64 libksud.so. Build ksud with embedded LKM assets before assembling release."
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(verifyReleaseKsud)
+}
+
 baselineProfile {
     mergeIntoMain = true
     saveInSrc = true
@@ -175,6 +181,10 @@ base {
     archivesName.set(
         "ReSukiSU_${managerVersionName}_${managerVersionCode}"
     )
+}
+
+configurations.all {
+    exclude(group = "androidx.navigationevent", module = "navigationevent-compose")
 }
 
 aboutLibraries {
@@ -218,9 +228,14 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
+    implementation(libs.androidx.navigation3.runtime)
     implementation(libs.miuix.blur)
-    implementation(libs.miuix.nav)
+    implementation(libs.miuix.navigation)
+    implementation(libs.androidx.navigationevent) {
+        exclude(group = "androidx.navigation", module = "navigationevent-compose")
+    }
 
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose.m3)
@@ -250,6 +265,8 @@ dependencies {
     implementation(libs.androidx.webkit)
 
     implementation(libs.lsposed.cxx)
+
+    implementation(libs.com.github.topjohnwu.libsu.core)
 
     implementation(libs.accompanist.drawablepainter)
 }

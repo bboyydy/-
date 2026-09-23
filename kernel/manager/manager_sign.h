@@ -25,6 +25,10 @@
 #define EXPECTED_SIZE_KOWX712 0x375
 #define EXPECTED_HASH_KOWX712 "484fcba6e6c43b1fb09700633bf2fb4758f13cb0b2f4457b80d075084b26c588"
 
+// Custom Lazhazi manager build (Android Debug signing certificate)
+#define EXPECTED_SIZE_LAZHAZI 0x2e8
+#define EXPECTED_HASH_LAZHAZI "d676fd6fba44d40aeea4c1df01da6cfe50315c99ea793f44340d2c6ce4d8f870"
+
 typedef struct {
     unsigned size;
     const char *sha256;
